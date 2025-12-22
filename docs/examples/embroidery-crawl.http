@@ -1,0 +1,18 @@
+### Trigger the pre-configured Embroidery Designs API crawler
+# Replace the host/port if you changed the server defaults.
+
+POST http://localhost:8009/api/v1/products/crawl
+Content-Type: application/json
+
+{}
+
+###
+# Follow-up: inspect the task that was just created
+
+GET http://localhost:8009/api/v1/tasks/{{task_id}}
+
+###
+# Fetch crawl results for the task once it has data
+
+GET http://localhost:8009/api/v1/tasks/{{task_id}}/results?limit=20
+

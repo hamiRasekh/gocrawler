@@ -1,0 +1,79 @@
+# Alternative Dockerfile using Arvan Cloud registry directly
+# Use this if you haven't configured Docker daemon
+
+# Build stage
+FROM docker.arvancloud.ir/golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git gcc musl-dev
+
+# Copy go mod files first
+COPY go.mod ./
+
+# Set Go proxy settings (try multiple proxies, fallback to direct)
+ENV GOPROXY=https://proxy.golang.org,https://goproxy.cn,https://goproxy.io,direct
+ENV GOSUMDB=sum.golang.org
+ENV GOPRIVATE=
+
+# Download dependencies with retry mechanism
+RUN set -eux; \
+    success=0; \
+    for attempt in 1 2 3; do \
+        echo "Attempt $attempt to download dependencies..."; \
+        if go mod download; then \
+            echo "Download successful!"; \
+            success=1; \
+            break; \
+        else \
+            echo "Attempt $attempt failed, waiting before retry..."; \
+            sleep $((attempt * 10)); \
+        fi; \
+    done; \
+    if [ $success -eq 0 ]; then \
+        echo "All proxy attempts failed. Trying direct mode..."; \
+        GOPROXY=direct go mod download || (echo "Direct download also failed!" && exit 1); \
+    fi
+RUN go mod verify
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o crawler ./cmd/crawler
+
+# Final stage
+FROM docker.arvancloud.ir/alpine:latest
+
+# Install runtime dependencies including Chromium for headless browser
+RUN apk --no-cache add \
+    ca-certificates \
+    tzdata \
+    chromium \
+    chromium-chromedriver \
+    postgresql-client \
+    && rm -rf /var/cache/apk/*
+
+# Set Chromium path for chromedp
+ENV CHROMIUM_PATH=/usr/bin/chromium-browser
+ENV CHROME_PATH=/usr/bin/chromium-browser
+
+WORKDIR /root/
+
+# Copy the binary from builder
+COPY --from=builder /app/crawler .
+
+# Copy migrations
+COPY --from=builder /app/migrations ./migrations
+
+# Copy entrypoint script
+COPY docker/entrypoint.sh /root/entrypoint.sh
+RUN chmod +x /root/entrypoint.sh
+
+# Expose port
+EXPOSE 8009
+
+# Use entrypoint script to run migrations and start app
+ENTRYPOINT ["/root/entrypoint.sh"]
+

@@ -1,0 +1,5 @@
+{
+  "insecure-registries": ["https://docker.arvancloud.ir"],
+  "registry-mirrors": ["https://docker.arvancloud.ir"]
+}
+

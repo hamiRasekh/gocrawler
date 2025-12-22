@@ -1,0 +1,1095 @@
+openapi: 3.0.3
+info:
+  title: Embroidery Designs Crawling API
+  version: 1.0.0
+  description: |
+    HTTP API used to orchestrate the Embroidery Designs crawling platform.  
+    All endpoints are served under `/api/v1`. Use the `/swagger` route that ships
+    with the project to explore a live, interactive copy of this document.
+  contact:
+    name: Embroidery Designs Platform
+servers:
+  - url: http://localhost:8009
+    description: Local development server
+tags:
+  - name: Health
+  - name: Tasks
+  - name: TaskResults
+  - name: Proxies
+  - name: Products
+  - name: Auth
+paths:
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: Returns the health status of the API server.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/v1/stats:
+    get:
+      tags: [Health]
+      summary: Platform summary metrics
+      description: Returns aggregate statistics about tasks and proxies.
+      responses:
+        '200':
+          description: Statistics payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+  /api/v1/tasks:
+    get:
+      tags: [Tasks]
+      summary: List crawl tasks
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Paginated tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+    post:
+      tags: [Tasks]
+      summary: Create a new crawl task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Tasks]
+      summary: Get task details
+      responses:
+        '200':
+          description: Task detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Tasks]
+      summary: Update a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+    delete:
+      tags: [Tasks]
+      summary: Delete a task
+      responses:
+        '200':
+          description: Confirmation message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/tasks/{id}/start:
+    post:
+      tags: [Tasks]
+      summary: Start a task
+      parameters:
+        - $ref: '#/components/parameters/TaskID'
+      responses:
+        '200':
+          description: Task started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/tasks/{id}/stop:
+    post:
+      tags: [Tasks]
+      summary: Stop a task
+      parameters:
+        - $ref: '#/components/parameters/TaskID'
+      responses:
+        '200':
+          description: Task stopped
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/tasks/{id}/pause:
+    post:
+      tags: [Tasks]
+      summary: Pause a running task
+      parameters:
+        - $ref: '#/components/parameters/TaskID'
+      responses:
+        '200':
+          description: Task paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/tasks/{id}/status:
+    get:
+      tags: [Tasks]
+      summary: Task status summary
+      parameters:
+        - $ref: '#/components/parameters/TaskID'
+      responses:
+        '200':
+          description: Current task status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatusResponse'
+  /api/v1/tasks/{id}/results:
+    get:
+      tags: [TaskResults]
+      summary: List crawl results for a task
+      parameters:
+        - $ref: '#/components/parameters/TaskID'
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Crawl result batch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResultsResponse'
+    delete:
+      tags: [TaskResults]
+      summary: Delete crawl results for a task
+      parameters:
+        - $ref: '#/components/parameters/TaskID'
+      responses:
+        '200':
+          description: Deletion confirmation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/proxies:
+    get:
+      tags: [Proxies]
+      summary: List configured proxies
+      responses:
+        '200':
+          description: Proxy collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyListResponse'
+    post:
+      tags: [Proxies]
+      summary: Register a proxy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProxyRequest'
+      responses:
+        '201':
+          description: Proxy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proxy'
+  /api/v1/proxies/{id}:
+    delete:
+      tags: [Proxies]
+      summary: Delete a proxy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deletion confirmation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/proxies/test:
+    post:
+      tags: [Proxies]
+      summary: Test proxy health ad hoc
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProxyRequest'
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyTestResponse'
+  /api/v1/products:
+    get:
+      tags: [Products]
+      summary: List products stored in Postgres
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: brand
+          schema:
+            type: string
+        - in: query
+          name: catalog
+          schema:
+            type: string
+        - in: query
+          name: in_stock
+          schema:
+            type: boolean
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            description: "Comma separated product statuses (pending, approved, rejected)"
+      responses:
+        '200':
+          description: Product page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+  /api/v1/products/stats:
+    get:
+      tags: [Products]
+      summary: Product aggregate metrics
+      responses:
+        '200':
+          description: Stats payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductStatsResponse'
+  /api/v1/products/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Products]
+      summary: Fetch a product by numeric ID
+      responses:
+        '200':
+          description: Product resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Products]
+      summary: Delete a product
+      responses:
+        '200':
+          description: Deletion confirmation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/v1/products/{id}/status:
+    patch:
+      tags: [Products]
+      summary: Update moderation status for a product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductStatusUpdateRequest'
+      responses:
+        '200':
+          description: Updated product resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/products/elastic/{elastic_id}:
+    parameters:
+      - name: elastic_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Products]
+      summary: Fetch a product by Elastic ID
+      responses:
+        '200':
+          description: Product resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/products/crawl:
+    post:
+      tags: [Products]
+      summary: Trigger the Embroidery Designs API crawler
+      description: Creates a new task pre-configured for the Embroidery Designs API and starts it immediately.
+      responses:
+        '201':
+          description: Crawl started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbroideryCrawlResponse'
+
+  /api/v1/products/crawl-config:
+    get:
+      tags: [Products]
+      summary: Retrieve the current payload overrides for the embroidery crawler
+      responses:
+        '200':
+          description: Current crawler payload configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbroideryCrawlConfig'
+    put:
+      tags: [Products]
+      summary: Update the embroidery crawler payload overrides
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbroideryCrawlConfigRequest'
+      responses:
+        '200':
+          description: Updated crawler payload configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbroideryCrawlConfig'
+        '400':
+          description: Invalid overrides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to persist overrides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new administrator account
+      description: Accepts a username and password, hashes the password with bcrypt, and creates a new admin user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterAdminRequest'
+      responses:
+        '201':
+          description: Admin created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterAdminResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate an administrator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Exchange a refresh token for a new access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Fresh access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke a refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/auth/admin-token:
+    post:
+      tags: [Auth]
+      summary: Issue a long-lived API token using admin credentials
+      description: Validates username/password and returns a signed API token that expires according to configuration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminTokenRequest'
+      responses:
+        '201':
+          description: API token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTokenResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  parameters:
+    TaskID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+    StatsResponse:
+      type: object
+      properties:
+        tasks:
+          type: object
+          properties:
+            total:
+              type: integer
+            by_status:
+              type: object
+              additionalProperties:
+                type: integer
+        proxies:
+          type: object
+          properties:
+            total:
+              type: integer
+            active:
+              type: integer
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        url:
+          type: string
+        type:
+          type: string
+          enum: [api, web]
+        status:
+          type: string
+          enum: [pending, running, paused, completed, failed, stopped]
+        config:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+    CreateTaskRequest:
+      type: object
+      required: [name, url, type]
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        type:
+          type: string
+          enum: [api, web]
+        config:
+          type: object
+          additionalProperties: {}
+    UpdateTaskRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        config:
+          type: object
+          additionalProperties: {}
+    TaskListResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        limit:
+          type: integer
+        offset:
+          type: integer
+    TaskStatusResponse:
+      type: object
+      properties:
+        task_id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, running, paused, completed, failed, stopped]
+    CrawlResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_id:
+          type: integer
+        url:
+          type: string
+        method:
+          type: string
+        status_code:
+          type: integer
+        headers:
+          type: string
+          description: Raw JSON headers
+        body:
+          type: string
+        response_time:
+          type: integer
+          description: Milliseconds
+        proxy_used:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    TaskResultsResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrawlResult'
+        limit:
+          type: integer
+        offset:
+          type: integer
+    Proxy:
+      type: object
+      properties:
+        id:
+          type: integer
+        host:
+          type: string
+        port:
+          type: integer
+        type:
+          type: string
+          enum: [http, https, socks5]
+        username:
+          type: string
+          nullable: true
+        password:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        failure_count:
+          type: integer
+        last_checked:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ProxyRequest:
+      type: object
+      required: [host, port, type]
+      properties:
+        host:
+          type: string
+        port:
+          type: integer
+        type:
+          type: string
+          enum: [http, https, socks5]
+        username:
+          type: string
+        password:
+          type: string
+        is_active:
+          type: boolean
+          default: true
+    ProxyListResponse:
+      type: object
+      properties:
+        proxies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Proxy'
+    ProxyTestResponse:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+        proxy:
+          $ref: '#/components/schemas/ProxyRequest'
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        elastic_id:
+          type: string
+        product_id:
+          type: string
+        item_id:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+        catalog:
+          type: string
+        artist:
+          type: string
+        rating:
+          type: number
+          format: float
+        list_price:
+          type: number
+          format: float
+        sale_price:
+          type: number
+          format: float
+        club_price:
+          type: number
+          format: float
+        sale_rank:
+          type: integer
+        customer_interest_index:
+          type: integer
+        in_stock:
+          type: boolean
+        is_active:
+          type: boolean
+        is_buyable:
+          type: boolean
+        licensed:
+          type: boolean
+        is_applique:
+          type: boolean
+        is_cross_stitch:
+          type: boolean
+        is_pdf_available:
+          type: boolean
+        is_fsl:
+          type: boolean
+        is_heat_transfer:
+          type: boolean
+        is_design_used_in_project:
+          type: boolean
+        in_custom_pack:
+          type: boolean
+        definition_name:
+          type: string
+        product_type:
+          type: string
+        gtin:
+          type: string
+        color_sequence:
+          type: string
+        design_keywords:
+          type: string
+        categories:
+          type: string
+        categories_list:
+          type: string
+          description: JSON
+        keywords:
+          type: string
+          description: JSON
+        sales:
+          type: string
+        sales_list:
+          type: string
+          description: JSON
+        sale_end_date:
+          type: string
+          format: date-time
+        year_created:
+          type: string
+          format: date-time
+        applied_discount_id:
+          type: integer
+        is_multiple_variants_available:
+          type: boolean
+        variants:
+          type: string
+          description: JSON
+        raw_data:
+          type: string
+          description: Original payload
+        status:
+          type: string
+          description: Moderation status assigned inside the admin panel.
+          enum: [pending, approved, rejected]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ProductListResponse:
+      type: object
+      properties:
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    ProductStatsResponse:
+      type: object
+      description: Aggregated product stats keyed by metric.
+      properties:
+        total:
+          type: integer
+        total_products:
+          type: integer
+        in_stock:
+          type: integer
+        brands_count:
+          type: integer
+        status_breakdown:
+          type: object
+          additionalProperties:
+            type: integer
+      additionalProperties: true
+    ProductStatusUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+          description: Desired moderation status.
+    RegisterAdminRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+        password:
+          type: string
+          minLength: 8
+          format: password
+    RegisterAdminResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          description: Lifetime of the JWT in seconds.
+        refresh_expires_at:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+    RefreshTokenRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+    RefreshTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+        refresh_expires_at:
+          type: string
+          format: date-time
+    AdminTokenRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        token_name:
+          type: string
+          description: Optional label for the token.
+    AdminTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        token_name:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        expires_in:
+          type: integer
+    EmbroideryCrawlResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        task_id:
+          type: integer
+    EmbroideryCrawlConfigRequest:
+      type: object
+      required: [payload_overrides]
+      properties:
+        payload_overrides:
+          type: object
+          additionalProperties: true
+    EmbroideryCrawlConfig:
+      type: object
+      properties:
+        payload_overrides:
+          type: object
+          additionalProperties: true
+        default_payload:
+          type: object
+          additionalProperties: true
+        effective_payload:
+          type: object
+          additionalProperties: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+

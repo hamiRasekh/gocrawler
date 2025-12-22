@@ -1,0 +1,18 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: crawler-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8009/api/v1
+    ports:
+      - "3009:80"
+    networks:
+      - production_network
+
+networks:
+  production_network:
+    external: true
+    name: production_network
+

@@ -1,0 +1,82 @@
+services:
+  postgres:
+    # If Docker daemon is configured with Arvan registry mirror, use: postgres:15-alpine
+    # Otherwise, use: docker.arvancloud.ir/postgres:15-alpine
+    image: docker.arvancloud.ir/postgres:15-alpine
+    container_name: crawler-postgres
+    environment:
+      POSTGRES_USER: crawler
+      POSTGRES_PASSWORD: crawler_password
+      POSTGRES_DB: crawler_db
+    ports:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crawler"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - production_network
+
+  crawler:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: crawler-app
+    environment:
+      # Server
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8009
+      API_PREFIX: /api/v1
+      
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: crawler
+      DB_PASSWORD: crawler_password
+      DB_NAME: crawler_db
+      DB_SSLMODE: disable
+      
+      # Logging
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      
+      # Crawler
+      MAX_WORKERS: 10
+      RATE_LIMIT_PER_SECOND: 5
+      REQUEST_TIMEOUT: 30s
+      RETRY_MAX_ATTEMPTS: 3
+      RETRY_BACKOFF_MULTIPLIER: 2
+      
+      # Browser
+      HEADLESS: "true"
+      BROWSER_TIMEOUT: 60s
+      USER_DATA_DIR: /tmp/browser-data
+      
+      # Proxy
+      PROXY_ENABLED: "true"
+      PROXY_HEALTH_CHECK_INTERVAL: 5m
+      PROXY_MAX_FAILURES: 3
+    ports:
+      - "8009:8009"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - browser_data:/tmp/browser-data
+    networks:
+      - production_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  browser_data:
+
+networks:
+  production_network:
+    external: true
+    name: production_network
+
