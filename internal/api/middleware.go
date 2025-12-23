@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -53,12 +54,23 @@ func RecoveryMiddleware() gin.HandlerFunc {
 	})
 }
 
-func CORSMiddleware() gin.HandlerFunc {
+func CORSMiddleware(corsOrigin string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		// Set CORS origin from configuration
+		origin := corsOrigin
+		if origin == "" {
+			origin = "*"
+		}
+		
+		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		
+		// Only allow credentials if origin is not wildcard
+		if origin != "*" {
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+		
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 		
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
@@ -105,8 +117,116 @@ func JWTAuthMiddleware(cfg *config.Config, repository *storage.Repository) gin.H
 		}
 		// If not found in DB, it's a login token (which is fine)
 
-		c.Set("user_id", claims.UserID)
-		c.Set("username", claims.Username)
+	c.Set("user_id", claims.UserID)
+	c.Set("username", claims.Username)
+	c.Next()
+	}
+}
+
+// IP-based rate limiter for authentication endpoints
+type ipRateLimiter struct {
+	visitors map[string]*visitor
+	mu       sync.RWMutex
+	rate     int
+	window   time.Duration
+}
+
+type visitor struct {
+	count    int
+	lastSeen time.Time
+}
+
+func newIPRateLimiter(rate int, window time.Duration) *ipRateLimiter {
+	rl := &ipRateLimiter{
+		visitors: make(map[string]*visitor),
+		rate:     rate,
+		window:   window,
+	}
+	
+	// Cleanup old entries periodically
+	go rl.cleanup()
+	
+	return rl
+}
+
+func (rl *ipRateLimiter) cleanup() {
+	ticker := time.NewTicker(rl.window)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		rl.mu.Lock()
+		now := time.Now()
+		for ip, v := range rl.visitors {
+			if now.Sub(v.lastSeen) > rl.window {
+				delete(rl.visitors, ip)
+			}
+		}
+		rl.mu.Unlock()
+	}
+}
+
+func (rl *ipRateLimiter) allow(ip string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	
+	now := time.Now()
+	v, exists := rl.visitors[ip]
+	
+	if !exists {
+		rl.visitors[ip] = &visitor{
+			count:    1,
+			lastSeen: now,
+		}
+		return true
+	}
+	
+	// Reset if window has passed
+	if now.Sub(v.lastSeen) > rl.window {
+		v.count = 1
+		v.lastSeen = now
+		return true
+	}
+	
+	// Check if limit exceeded
+	if v.count >= rl.rate {
+		return false
+	}
+	
+	v.count++
+	v.lastSeen = now
+	return true
+}
+
+// AuthRateLimitMiddleware creates a rate limiting middleware for authentication endpoints
+func AuthRateLimitMiddleware(cfg *config.Config) gin.HandlerFunc {
+	rate := cfg.Auth.RateLimitRequests
+	window := cfg.Auth.RateLimitWindow
+	
+	// Default values if not configured
+	if rate <= 0 {
+		rate = 5
+	}
+	if window <= 0 {
+		window = 15 * time.Minute
+	}
+	
+	limiter := newIPRateLimiter(rate, window)
+	
+	return func(c *gin.Context) {
+		ip := c.ClientIP()
+		
+		if !limiter.allow(ip) {
+			utils.GetLogger().Warn("Rate limit exceeded for auth endpoint",
+				zap.String("ip", ip),
+				zap.String("path", c.Request.URL.Path),
+			)
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error": "Too many requests. Please try again later.",
+			})
+			c.Abort()
+			return
+		}
+		
 		c.Next()
 	}
 }

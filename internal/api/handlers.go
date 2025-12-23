@@ -53,7 +53,7 @@ func NewHandlers(
 func (h *Handlers) CreateTask(c *gin.Context) {
 	var req service.CreateTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
@@ -114,7 +114,7 @@ func (h *Handlers) UpdateTask(c *gin.Context) {
 
 	var req service.UpdateTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
@@ -270,7 +270,7 @@ func (h *Handlers) ListProxies(c *gin.Context) {
 func (h *Handlers) CreateProxy(c *gin.Context) {
 	var proxy storage.Proxy
 	if err := c.ShouldBindJSON(&proxy); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid proxy configuration"})
 		return
 	}
 
@@ -308,13 +308,14 @@ func (h *Handlers) DeleteProxy(c *gin.Context) {
 func (h *Handlers) TestProxy(c *gin.Context) {
 	var proxy storage.Proxy
 	if err := c.ShouldBindJSON(&proxy); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid proxy configuration"})
 		return
 	}
 
 	healthy, err := h.proxyManager.TestProxy(c.Request.Context(), &proxy)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.logger.Error("Failed to test proxy", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to test proxy"})
 		return
 	}
 
@@ -500,7 +501,7 @@ func (h *Handlers) UpdateProductStatus(c *gin.Context) {
 
 	var req UpdateProductStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
@@ -593,7 +594,7 @@ func (h *Handlers) GetEmbroideryCrawlConfig(c *gin.Context) {
 func (h *Handlers) UpdateEmbroideryCrawlConfig(c *gin.Context) {
 	var req UpdateEmbroideryConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid configuration format"})
 		return
 	}
 
@@ -671,7 +672,7 @@ type UpdateEmbroideryConfigRequest struct {
 func (h *Handlers) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
@@ -743,7 +744,7 @@ func (h *Handlers) Login(c *gin.Context) {
 func (h *Handlers) RegisterAdmin(c *gin.Context) {
 	var req RegisterAdminRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
@@ -795,7 +796,7 @@ func (h *Handlers) RegisterAdmin(c *gin.Context) {
 func (h *Handlers) GenerateAdminAPIToken(c *gin.Context) {
 	var req AdminTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
@@ -858,7 +859,7 @@ func (h *Handlers) GenerateAdminAPIToken(c *gin.Context) {
 func (h *Handlers) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
@@ -929,7 +930,7 @@ func (h *Handlers) RefreshToken(c *gin.Context) {
 func (h *Handlers) Logout(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
@@ -966,7 +967,7 @@ func (h *Handlers) GetCurrentUser(c *gin.Context) {
 func (h *Handlers) GenerateToken(c *gin.Context) {
 	var req GenerateTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 

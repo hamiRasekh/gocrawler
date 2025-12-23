@@ -14,10 +14,12 @@ type Message struct {
 }
 
 type Client struct {
-	ID     string
-	TaskID *int64 // Filter logs by task ID (nil = all tasks)
-	Send   chan []byte
-	Hub    *Hub
+	ID       string
+	TaskID   *int64 // Filter logs by task ID (nil = all tasks)
+	UserID   int64  // User ID for authentication
+	Username string // Username for authentication
+	Send     chan []byte
+	Hub      *Hub
 }
 
 type Hub struct {

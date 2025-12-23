@@ -30,7 +30,7 @@ func NewServer(cfg *config.Config, handlers *Handlers, wsHub *websocket.Hub) *Se
 	router := gin.New()
 	router.Use(LoggerMiddleware())
 	router.Use(RecoveryMiddleware())
-	router.Use(CORSMiddleware())
+	router.Use(CORSMiddleware(cfg.Server.CORSOrigin))
 
 	// Serve Swagger UI and the generated OpenAPI document
 	router.Static("/swagger", "./docs/swagger")

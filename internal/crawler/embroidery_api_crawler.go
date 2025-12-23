@@ -95,10 +95,8 @@ func NewEmbroideryAPICrawler(
 	}
 
 	eac.cookies = embCfg.Cookies
-	if eac.cookies == "" {
-		// Fallback to default cookies if not provided
-		eac.cookies = ".AspNetCore.Antiforgery.TvID2vd87ec=CfDJ8KTVZ637icVPj_pEImxQ47SfvvQDCb4TrQjWAz_ZEFIIi2CL8qEjO7-trnGom56mEmndxk1vDdjCyjQmEPLQQVFX4j3g0n-GlX16zNOqvV1APqRh6UHMD8v_Ht1xDblkYSi2ETDxVbmQMUCZ5GP2Yzs; __cflb=0H28vLEqq6KG1NM4B5fRPAsPJ6QTtcuTzpCMR9YQvPE; CountryCode=US; CookieConsent=1; ThirdPartyConsent=1"
-	}
+	// Cookies must be provided via EMBROIDERY_COOKIES environment variable
+	// No hardcoded fallback for security reasons
 
 	// API-specific headers (will be merged with fingerprint headers)
 	authToken := embCfg.AuthToken

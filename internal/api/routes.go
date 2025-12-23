@@ -15,8 +15,9 @@ func SetupRoutes(router *gin.Engine, handlers *Handlers, cfg *config.Config, rep
 	// Public routes (no auth required)
 	api.GET("/health", handlers.Health)
 	
-	// Auth routes (no auth required)
+	// Auth routes (no auth required, but rate limited)
 	auth := api.Group("/auth")
+	auth.Use(AuthRateLimitMiddleware(cfg))
 	{
 		auth.POST("/register", handlers.RegisterAdmin)
 		auth.POST("/login", handlers.Login)
@@ -78,7 +79,7 @@ func SetupRoutes(router *gin.Engine, handlers *Handlers, cfg *config.Config, rep
 		authMgmt.DELETE("/tokens/:id", handlers.DeleteToken)
 	}
 	
-	// WebSocket route (no auth for now, can add later)
+	// WebSocket route (requires authentication via token query param or Authorization header)
 	router.GET("/ws/logs", func(c *gin.Context) {
 		var taskID *int64
 		if taskIDStr := c.Query("task_id"); taskIDStr != "" {
@@ -86,7 +87,7 @@ func SetupRoutes(router *gin.Engine, handlers *Handlers, cfg *config.Config, rep
 				taskID = &id
 			}
 		}
-		websocket.HandleWebSocket(wsHub, c.Writer, c.Request, taskID)
+		websocket.HandleWebSocket(wsHub, c.Writer, c.Request, taskID, cfg, repository)
 	})
 }
 

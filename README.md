@@ -1,351 +1,424 @@
-# 🕷️ Professional Go Crawler - سیستم کرالر حرفه‌ای
+# 🕷️ Professional Go Web Crawler
 
-یک سیستم کرالر قدرتمند و حرفه‌ای با زبان Go که برای کرال کردن داده‌های طراحی‌های گلدوزی از وب‌سایت embroiderydesigns.com طراحی شده است. این پروژه از معماری Clean Architecture استفاده می‌کند و قابلیت‌های پیشرفته‌ای مانند headless browser، rotating proxy، و worker pool را ارائه می‌دهد.
+A powerful and professional web crawling system built with Go, designed for scraping embroidery design data from websites. This project uses Clean Architecture and provides advanced features such as headless browser support, rotating proxy management, and worker pool processing.
 
-## 📋 فهرست مطالب
+## 📋 Table of Contents
 
-- [ویژگی‌ها](#ویژگی‌ها)
-- [معماری پروژه](#معماری-پروژه)
-- [نحوه کار پروژه](#نحوه-کار-پروژه)
-- [نصب و راه‌اندازی](#نصب-و-راه‌اندازی)
-- [استفاده از API](#استفاده-از-api)
-- [مستندات API](#مستندات-api)
-- [پیکربندی](#پیکربندی)
-- [توسعه](#توسعه)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Security](#security)
+- [API Documentation](#api-documentation)
+- [Usage Examples](#usage-examples)
+- [Development](#development)
+- [Contributing](#contributing)
 
-## ✨ ویژگی‌ها
+## ✨ Features
 
-### قابلیت‌های اصلی
+### Core Capabilities
 
-- ✅ **Headless Browser**: استفاده از Chromedp برای کرالینگ صفحات وب با JavaScript
-- ✅ **Rotating Proxy**: مدیریت و چرخش خودکار proxy ها با health checking
-- ✅ **Browser Fingerprinting**: شبیه‌سازی مرورگر واقعی با fingerprinting پیشرفته
-- ✅ **REST API**: API کامل برای مدیریت tasks، proxies، و نتایج
-- ✅ **PostgreSQL**: ذخیره‌سازی داده‌ها در PostgreSQL با migrations خودکار
-- ✅ **Docker Support**: اجرای کامل در Docker و Docker Compose
-- ✅ **Rate Limiting**: کنترل نرخ درخواست‌ها برای جلوگیری از بلاک شدن
-- ✅ **Retry Mechanism**: تلاش مجدد خودکار با exponential backoff
-- ✅ **Worker Pool**: پردازش همزمان با worker pool برای کارایی بالا
-- ✅ **Embroidery API Crawler**: کرالر اختصاصی برای API سایت embroiderydesigns.com
+- ✅ **Headless Browser**: Uses Chromedp for crawling JavaScript-rendered web pages
+- ✅ **Rotating Proxy**: Automatic proxy management and rotation with health checking
+- ✅ **Browser Fingerprinting**: Simulates real browsers with advanced fingerprinting
+- ✅ **REST API**: Complete API for managing tasks, proxies, and results
+- ✅ **PostgreSQL**: Data storage in PostgreSQL with automatic migrations
+- ✅ **Docker Support**: Full Docker and Docker Compose support
+- ✅ **Rate Limiting**: Request rate control to prevent blocking
+- ✅ **Retry Mechanism**: Automatic retry with exponential backoff
+- ✅ **Worker Pool**: Concurrent processing with worker pool for high performance
+- ✅ **Embroidery API Crawler**: Specialized crawler for embroiderydesigns.com API
+- ✅ **WebSocket Support**: Real-time log streaming via WebSocket
+- ✅ **JWT Authentication**: Secure token-based authentication
+- ✅ **Rate Limiting**: Protection against brute force attacks
 
-### قابلیت‌های پیشرفته
+### Advanced Features
 
-- 🔄 **Auto-retry**: تلاش مجدد خودکار در صورت خطا
-- 🎭 **Stealth Mode**: پنهان‌سازی هویت کرالر با تکنیک‌های پیشرفته
-- 📊 **Real-time Monitoring**: نظارت بر وضعیت tasks و proxies
-- 🗄️ **Product Management**: ذخیره‌سازی و مدیریت محصولات گلدوزی
-- 🔍 **Advanced Filtering**: فیلتر پیشرفته محصولات بر اساس برند، کاتالوگ، و غیره
+- 🔄 **Auto-retry**: Automatic retry on errors
+- 🎭 **Stealth Mode**: Advanced techniques to hide crawler identity
+- 📊 **Real-time Monitoring**: Monitor task and proxy status
+- 🗄️ **Product Management**: Store and manage scraped products
+- 🔍 **Advanced Filtering**: Advanced product filtering by brand, catalog, etc.
+- 🔐 **Security Hardened**: No hardcoded credentials, configurable CORS, rate limiting
 
-## 🏗️ معماری پروژه
+## 🏗️ Architecture
 
-پروژه با Clean Architecture و Dependency Injection طراحی شده است:
+The project is designed with Clean Architecture and Dependency Injection:
 
 ```
-embroidery-designs/
+gocrawler/
 ├── cmd/
-│   └── crawler/              # Entry point اصلی برنامه
-│       └── main.go           # نقطه شروع برنامه
+│   └── crawler/              # Application entry point
+│       └── main.go           # Main application file
 │
 ├── internal/
-│   ├── api/                  # لایه API و HTTP handlers
-│   │   ├── handlers.go       # Handler های REST API
-│   │   ├── middleware.go    # Middleware ها (CORS, Logger, Recovery)
-│   │   ├── routes.go        # تعریف route ها
-│   │   └── server.go        # سرور HTTP
+│   ├── api/                  # API layer and HTTP handlers
+│   │   ├── handlers.go       # REST API handlers
+│   │   ├── middleware.go     # Middleware (CORS, Logger, Recovery, Rate Limiting)
+│   │   ├── routes.go         # Route definitions
+│   │   └── server.go         # HTTP server
 │   │
-│   ├── browser/              # مدیریت مرورگر headless
-│   │   ├── fingerprint.go   # تولید fingerprint مرورگر
-│   │   ├── launcher.go      # راه‌اندازی مرورگر
-│   │   ├── manager.go       # مدیریت مرورگر
-│   │   └── stealth.go       # تکنیک‌های stealth
+│   ├── auth/                 # Authentication
+│   │   ├── jwt.go           # JWT token generation and validation
+│   │   └── refresh.go       # Refresh token management
 │   │
-│   ├── config/               # مدیریت تنظیمات
-│   │   └── config.go        # بارگذاری و مدیریت config
+│   ├── browser/              # Headless browser management
+│   │   ├── fingerprint.go   # Browser fingerprint generation
+│   │   ├── launcher.go      # Browser launcher
+│   │   ├── manager.go       # Browser manager
+│   │   └── stealth.go       # Stealth techniques
 │   │
-│   ├── crawler/              # هسته کرالر
-│   │   ├── api_crawler.go          # کرالر REST API
-│   │   ├── browser_crawler.go      # کرالر مرورگر
-│   │   ├── embroidery_api_crawler.go  # کرالر اختصاصی embroidery
-│   │   ├── web_crawler.go           # کرالر وب عمومی
-│   │   ├── worker_pool.go          # Worker pool برای پردازش موازی
-│   │   └── interface.go            # Interface های کرالر
+│   ├── config/               # Configuration management
+│   │   └── config.go        # Configuration loading and management
+│   │
+│   ├── crawler/              # Crawler core
+│   │   ├── api_crawler.go          # REST API crawler
+│   │   ├── browser_crawler.go      # Browser crawler
+│   │   ├── embroidery_api_crawler.go  # Specialized embroidery crawler
+│   │   ├── web_crawler.go           # General web crawler
+│   │   ├── worker_pool.go          # Worker pool for parallel processing
+│   │   └── interface.go            # Crawler interfaces
 │   │
 │   ├── fingerprint/          # Browser fingerprinting
-│   │   ├── headers.go       # تولید header های واقعی
-│   │   └── profile.go       # پروفایل مرورگر
+│   │   ├── headers.go       # Realistic header generation
+│   │   └── profile.go       # Browser profile
 │   │
-│   ├── proxy/                # مدیریت proxy
-│   │   ├── health_checker.go # بررسی سلامت proxy
-│   │   ├── manager.go       # مدیریت proxy ها
-│   │   └── pool.go          # Pool مدیریت proxy
+│   ├── proxy/                # Proxy management
+│   │   ├── health_checker.go # Proxy health checking
+│   │   ├── manager.go       # Proxy manager
+│   │   └── pool.go          # Proxy pool management
 │   │
-│   ├── service/              # لایه business logic
-│   │   ├── crawler_service.go  # سرویس کرالر
-│   │   └── task_service.go     # سرویس task
+│   ├── service/              # Business logic layer
+│   │   ├── crawler_service.go  # Crawler service
+│   │   └── task_service.go     # Task service
 │   │
-│   ├── storage/              # لایه دیتابیس
-│   │   ├── models.go        # مدل‌های داده
-│   │   ├── postgres.go      # اتصال PostgreSQL
+│   ├── storage/              # Database layer
+│   │   ├── models.go        # Data models
+│   │   ├── postgres.go      # PostgreSQL connection
 │   │   └── repository.go    # Repository pattern
 │   │
-│   └── utils/                # ابزارهای کمکی
-│       ├── logger.go        # Logger
-│       ├── rate_limiter.go  # Rate limiter
-│       └── retry.go         # Retry mechanism
+│   ├── utils/                # Utility functions
+│   │   ├── logger.go        # Logger
+│   │   ├── rate_limiter.go  # Rate limiter
+│   │   └── retry.go         # Retry mechanism
+│   │
+│   └── websocket/            # WebSocket support
+│       ├── handler.go       # WebSocket handler
+│       └── hub.go           # WebSocket hub
 │
 ├── migrations/               # Database migrations
-│   ├── 001_initial.up.sql   # Migration اولیه
+│   ├── 001_initial.up.sql
 │   ├── 001_initial.down.sql
-│   ├── 002_products.up.sql  # Migration محصولات
-│   └── 002_products.down.sql
+│   └── ...
 │
-├── docker/                   # فایل‌های Docker
-│   ├── Dockerfile           # Dockerfile اصلی
-│   ├── Dockerfile.arvan     # Dockerfile برای Arvan Cloud
-│   ├── entrypoint.sh        # اسکریپت راه‌اندازی
-│   └── daemon.json.example  # تنظیمات Docker daemon
+├── docker/                   # Docker files
+│   ├── Dockerfile           # Main Dockerfile
+│   ├── Dockerfile.arvan     # Arvan Cloud Dockerfile
+│   ├── entrypoint.sh        # Startup script
+│   └── daemon.json.example  # Docker daemon settings
+│
+├── frontend/                 # React frontend
+│   └── ...
 │
 ├── docker-compose.yml        # Docker Compose configuration
 ├── go.mod                    # Go modules
-├── Makefile                  # دستورات Make
-└── README.md                 # این فایل
+├── Makefile                  # Make commands
+└── README.md                 # This file
 ```
 
-## 🔄 نحوه کار پروژه
+## 🚀 Installation
 
-### جریان کلی کار
+### Prerequisites
 
-1. **راه‌اندازی**: برنامه با بارگذاری تنظیمات و اتصال به دیتابیس شروع می‌شود
-2. **ایجاد Task**: کاربر از طریق API یک task جدید ایجاد می‌کند
-3. **شروع Crawling**: با فراخوانی API، task شروع به اجرا می‌شود
-4. **پردازش**: Worker pool task را دریافت کرده و با کرالر مناسب پردازش می‌کند
-5. **ذخیره‌سازی**: نتایج در دیتابیس ذخیره می‌شوند
-6. **نظارت**: وضعیت task و نتایج از طریق API قابل مشاهده است
-
-### انواع کرالر
-
-#### 1. API Crawler (`api_crawler.go`)
-- برای کرال کردن REST API ها استفاده می‌شود
-- از HTTP client با پشتیبانی proxy استفاده می‌کند
-- Rate limiting و retry mechanism دارد
-
-#### 2. Browser Crawler (`browser_crawler.go`)
-- برای کرال کردن صفحات وب با JavaScript استفاده می‌شود
-- از Chromedp برای کنترل headless browser استفاده می‌کند
-- Stealth techniques برای پنهان‌سازی هویت
-
-#### 3. Embroidery API Crawler (`embroidery_api_crawler.go`)
-- کرالر اختصاصی برای API سایت embroiderydesigns.com
-- پشتیبانی از pagination خودکار
-- ذخیره‌سازی خودکار محصولات در دیتابیس
-- پردازش و تبدیل داده‌های Elasticsearch
-
-### Worker Pool
-
-Worker Pool برای پردازش موازی tasks استفاده می‌شود:
-- تعداد worker ها قابل تنظیم است (پیش‌فرض: 10)
-- هر worker یک task را به صورت مستقل پردازش می‌کند
-- Context cancellation برای توقف graceful
-
-### Proxy Management
-
-- **Health Checking**: بررسی خودکار سلامت proxy ها
-- **Rotation**: چرخش خودکار proxy ها
-- **Failure Tracking**: ردیابی proxy های ناموفق
-- **Auto-disable**: غیرفعال کردن خودکار proxy های مشکل‌دار
-
-### Browser Fingerprinting
-
-- تولید User-Agent واقعی
-- تنظیم Header های مرورگر
-- Stealth techniques برای جلوگیری از تشخیص
-
-## 🚀 نصب و راه‌اندازی
-
-### پیش‌نیازها
-
-- Go 1.21 یا بالاتر
+- Go 1.21 or higher
 - Docker & Docker Compose
-- PostgreSQL 15+ (یا استفاده از Docker Compose)
+- PostgreSQL 15+ (or use Docker Compose)
 
-### روش 1: با Docker Compose (توصیه می‌شود)
+### Method 1: Docker Compose (Recommended)
 
-1. **کلون کردن پروژه:**
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
-cd embroidery-designs
+cd gocrawler
 ```
 
-2. **اجرای بک‌اند (Go) با Docker Compose:**
+2. **Create environment file:**
+```bash
+cp .env.example .env
+# Edit .env and set required values (see Configuration section)
+```
+
+3. **Create Docker network (if it doesn't exist):**
+```bash
+docker network create production_network
+```
+
+4. **Start backend services:**
 ```bash
 docker compose up -d
 ```
 
-این دستور فقط سرویس‌های Go (اپلیکیشن و PostgreSQL) را بالا می‌آورد. پس از اجرا، می‌توانید لاگ‌ها را با دستور زیر ببینید:
-```bash
-docker compose logs -f crawler
-```
-
-3. **اجرای فرانت‌اند React در کانتینر مجزا:**
+5. **Start frontend (optional):**
 ```bash
 docker compose -f docker-compose.frontend.yml up -d
 ```
 
-این فایل Compose فقط UI را بالا می‌آورد و آن را به همان شبکه‌ی `production_network` متصل می‌کند. در صورت نیاز به توقف یا مشاهده‌ی لاگ‌ها:
-```bash
-docker compose -f docker-compose.frontend.yml logs -f frontend
-docker compose -f docker-compose.frontend.yml down
-```
-
-بعد از بالا آمدن فرانت‌اند، صفحه‌ی «Crawler Config» از مسیر `http://localhost:3009/crawler/config` قابل دسترسی است و امکان ویرایش JSON مربوط به فیلترهای کرالر را فراهم می‌کند.
-
-4. **بررسی وضعیت:**
+6. **Check status:**
 ```bash
 curl http://localhost:8009/api/v1/health
 ```
 
-### روش 2: بدون Docker
+### Method 2: Local Development
 
-1. **نصب وابستگی‌ها:**
+1. **Install dependencies:**
 ```bash
 go mod download
 ```
 
-2. **راه‌اندازی PostgreSQL:**
+2. **Set up PostgreSQL:**
 ```bash
-# راه‌اندازی PostgreSQL (مثال)
+# Create database
 psql -U postgres -c "CREATE DATABASE crawler_db;"
 ```
 
-3. **اجرای migrations:**
+3. **Run migrations:**
 ```bash
-# نیاز به golang-migrate
+# Install golang-migrate first
 migrate -path migrations -database "postgres://crawler:password@localhost:5432/crawler_db?sslmode=disable" up
 ```
 
-4. **تنظیم متغیرهای محیطی:**
+4. **Set environment variables:**
 ```bash
 export DB_HOST=localhost
 export DB_PORT=5432
 export DB_USER=crawler
-export DB_PASSWORD=password
+export DB_PASSWORD=your_password
 export DB_NAME=crawler_db
+export JWT_SECRET=your_jwt_secret
+# ... (see Configuration section for all variables)
 ```
 
-5. **اجرای برنامه:**
+5. **Run the application:**
 ```bash
 go run cmd/crawler/main.go
 ```
 
-## 📡 استفاده از API
+## ⚙️ Configuration
 
-### مشاهده Swagger UI
+### Environment Variables
 
-بعد از اجرای سرویس می‌توانید مستقیماً به آدرس [http://localhost:8009/swagger](http://localhost:8009/swagger) بروید تا نسخه تعاملی مستندات (Swagger UI) همراه با تست‌کننده آنلاین را مشاهده کنید. فایل `docs/swagger/openapi.yaml` منبع این مستندات است و در صورت نیاز می‌توانید آن را برای پیاده‌سازی‌های سفارشی ویرایش کنید.
+Create a `.env` file in the project root (use `.env.example` as a template):
 
-### مثال 1: ایجاد Task برای کرال Embroidery API
-
-```bash
-curl -X POST http://localhost:8009/api/v1/tasks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Embroidery Products Crawl",
-    "url": "https://www.embroiderydesigns.com/es/prdsrch",
-    "type": "api",
-    "config": {
-      "crawler_type": "embroidery_api"
-    }
-  }'
-```
-
-### مثال 2: شروع Crawling
+#### Required Variables
 
 ```bash
-# جایگزین {task_id} با ID واقعی task
-curl -X POST http://localhost:8009/api/v1/tasks/{task_id}/start
+# Database (REQUIRED)
+DB_PASSWORD=your_secure_password_here
+POSTGRES_PASSWORD=your_secure_password_here
+
+# Authentication (REQUIRED)
+JWT_SECRET=your_jwt_secret_key_here_minimum_32_characters
 ```
 
-### مثال 3: دریافت نتایج
+#### Server Configuration
 
 ```bash
-# دریافت لیست محصولات
-curl http://localhost:8009/api/v1/tasks/{task_id}/results
-
-# دریافت محصولات با فیلتر
-curl "http://localhost:8009/api/v1/products?brand=ABC&in_stock=true&limit=20"
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8009
+API_PREFIX=/api/v1
+CORS_ORIGIN=*  # Set to your frontend domain in production
 ```
 
-### مثال 4: مدیریت Proxy
+#### Database Configuration
 
 ```bash
-# اضافه کردن proxy
-curl -X POST http://localhost:8009/api/v1/proxies \
-  -H "Content-Type: application/json" \
-  -d '{
-    "host": "proxy.example.com",
-    "port": 8080,
-    "type": "http",
-    "username": "user",
-    "password": "pass"
-  }'
-
-# لیست proxy ها
-curl http://localhost:8009/api/v1/proxies
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=crawler
+DB_PASSWORD=your_secure_password_here
+DB_NAME=crawler_db
+DB_SSLMODE=disable  # Use 'require' in production
 ```
 
-### مثال 5: شروع سریع کرال محصولات Embroidery
-
-در صورت نیاز به راه‌اندازی سریع کرال اختصاصی سایت، تنها کافیست endpoint زیر را صدا بزنید. یک فایل نمونه برای ابزارهای `REST Client` / `Insomnia` در مسیر `docs/examples/embroidery-crawl.http` قرار داده شده است.
+#### Authentication & Security
 
 ```bash
-curl -X POST http://localhost:8009/api/v1/products/crawl
+JWT_SECRET=your_jwt_secret_key_here_minimum_32_characters
+JWT_EXPIRATION=24h
+REFRESH_TOKEN_EXPIRATION=168h
+ADMIN_TOKEN_LIFETIME=8760h
+
+# Rate limiting for authentication endpoints
+AUTH_RATE_LIMIT_REQUESTS=5
+AUTH_RATE_LIMIT_WINDOW=15m
 ```
 
-## 📚 مستندات API
+#### Crawler Configuration
 
-نسخه کامل OpenAPI/Swagger با مسیر `/swagger` در دسترس است و امکان دانلود فایل `openapi.yaml` یا اتصال آن به محیط‌های خارجی (مثلاً SwaggerHub یا Postman) فراهم شده است.
+```bash
+MAX_WORKERS=10
+RATE_LIMIT_PER_SECOND=5
+REQUEST_TIMEOUT=30s
+RETRY_MAX_ATTEMPTS=3
+RETRY_BACKOFF_MULTIPLIER=2
+```
 
-### Auth
+#### Browser Configuration
 
-#### ثبت‌نام ادمین جدید
+```bash
+HEADLESS=true
+BROWSER_TIMEOUT=60s
+USER_DATA_DIR=/tmp/browser-data
+```
+
+#### Proxy Configuration
+
+```bash
+PROXY_ENABLED=true
+PROXY_HEALTH_CHECK_INTERVAL=5m
+PROXY_MAX_FAILURES=3
+```
+
+#### Embroidery API Configuration (Optional)
+
+```bash
+EMBROIDERY_BASE_URL=https://www.embroiderydesigns.com/es/prdsrch
+EMBROIDERY_AUTH_TOKEN=
+EMBROIDERY_COOKIES=
+EMBROIDERY_PAGE_SIZE=120
+EMBROIDERY_CHECK_INTERVAL=6h
+```
+
+### Generating Secrets
+
+Generate a secure JWT secret:
+```bash
+openssl rand -base64 32
+```
+
+## 🔐 Security
+
+### Security Features
+
+- ✅ **No Hardcoded Credentials**: All secrets must be provided via environment variables
+- ✅ **Configurable CORS**: Set `CORS_ORIGIN` to your frontend domain (not `*` in production)
+- ✅ **Rate Limiting**: Authentication endpoints are rate-limited to prevent brute force attacks
+- ✅ **JWT Authentication**: Secure token-based authentication with refresh tokens
+- ✅ **WebSocket Authentication**: WebSocket connections require valid JWT tokens
+- ✅ **Input Validation**: All inputs are validated to prevent injection attacks
+- ✅ **Error Handling**: Error messages don't leak sensitive information
+- ✅ **SQL Injection Protection**: All queries use parameterized statements
+
+### Security Best Practices
+
+1. **Never commit `.env` files** to version control
+2. **Use strong, unique passwords** for production
+3. **Generate JWT_SECRET** using: `openssl rand -base64 32`
+4. **Set CORS_ORIGIN** to your frontend domain in production (not `*`)
+5. **Use SSL/TLS** in production (set `DB_SSLMODE=require`)
+6. **Regularly rotate** secrets and passwords
+7. **Keep dependencies updated** for security patches
+
+### WebSocket Security
+
+WebSocket connections require authentication via:
+- Query parameter: `ws://host/ws/logs?token=YOUR_JWT_TOKEN`
+- Authorization header: `Authorization: Bearer YOUR_JWT_TOKEN`
+
+## 📡 API Documentation
+
+### Base URL
+
+```
+http://localhost:8009/api/v1
+```
+
+### Swagger UI
+
+Interactive API documentation is available at:
+```
+http://localhost:8009/swagger
+```
+
+### Authentication
+
+Most endpoints require JWT authentication. Include the token in the Authorization header:
+
+```
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+### Authentication Endpoints
+
+#### Register Admin
+
 ```http
 POST /api/v1/auth/register
 Content-Type: application/json
 
 {
-  "username": "new_admin",
-  "password": "StrongPass123"
+  "username": "admin",
+  "password": "SecurePassword123"
 }
 ```
 
-#### ورود (Login)
+#### Login
+
 ```http
 POST /api/v1/auth/login
 Content-Type: application/json
 
 {
   "username": "admin",
-  "password": "admin123"
+  "password": "SecurePassword123"
 }
 ```
 
-#### صدور توکن API یک‌ساله
+Response:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "refresh_token_string",
+  "expires_in": 86400,
+  "refresh_expires_at": "2024-01-08T12:00:00Z",
+  "user": {
+    "id": 1,
+    "username": "admin"
+  }
+}
+```
+
+#### Refresh Token
+
+```http
+POST /api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "your_refresh_token"
+}
+```
+
+#### Generate Admin API Token
+
 ```http
 POST /api/v1/auth/admin-token
 Content-Type: application/json
 
 {
   "username": "admin",
-  "password": "admin123",
-  "token_name": "dashboard-bot"
+  "password": "SecurePassword123",
+  "token_name": "my-api-token"
 }
 ```
 
-### Tasks
+### Task Management
 
-#### ایجاد Task جدید
+#### Create Task
+
 ```http
 POST /api/v1/tasks
+Authorization: Bearer YOUR_TOKEN
 Content-Type: application/json
 
 {
@@ -353,126 +426,69 @@ Content-Type: application/json
   "url": "https://example.com/api/data",
   "type": "api",
   "config": {
-    "headers": {
-      "Authorization": "Bearer token"
-    },
-    "crawler_type": "embroidery_api"  // برای کرالر embroidery
+    "crawler_type": "embroidery_api"
   }
 }
 ```
 
-#### لیست Tasks
+#### List Tasks
+
 ```http
 GET /api/v1/tasks?limit=10&offset=0
+Authorization: Bearer YOUR_TOKEN
 ```
 
-#### دریافت Task
+#### Start Task
+
 ```http
-GET /api/v1/tasks/:id
+POST /api/v1/tasks/{id}/start
+Authorization: Bearer YOUR_TOKEN
 ```
 
-#### آپدیت Task
+#### Get Task Status
+
 ```http
-PUT /api/v1/tasks/:id
-Content-Type: application/json
-
-{
-  "name": "Updated Name",
-  "url": "https://new-url.com"
-}
+GET /api/v1/tasks/{id}/status
+Authorization: Bearer YOUR_TOKEN
 ```
 
-#### حذف Task
-```http
-DELETE /api/v1/tasks/:id
-```
+### Product Management
 
-#### شروع Crawling
-```http
-POST /api/v1/tasks/:id/start
-```
+#### List Products
 
-#### توقف Crawling
-```http
-POST /api/v1/tasks/:id/stop
-```
-
-#### Pause/Resume
-```http
-POST /api/v1/tasks/:id/pause
-POST /api/v1/tasks/:id/resume
-```
-
-#### دریافت وضعیت Task
-```http
-GET /api/v1/tasks/:id/status
-```
-
-#### دریافت نتایج
-```http
-GET /api/v1/tasks/:id/results?limit=10&offset=0
-```
-
-#### حذف نتایج
-```http
-DELETE /api/v1/tasks/:id/results
-```
-
-### Products
-
-#### لیست محصولات
 ```http
 GET /api/v1/products?limit=20&offset=0&brand=ABC&in_stock=true
+Authorization: Bearer YOUR_TOKEN
 ```
 
-#### دریافت محصول
+#### Get Product
+
 ```http
-GET /api/v1/products/:id
+GET /api/v1/products/{id}
+Authorization: Bearer YOUR_TOKEN
 ```
 
-#### آمار محصولات
+#### Start Embroidery Crawl
+
 ```http
-GET /api/v1/products/stats
+POST /api/v1/products/crawl
+Authorization: Bearer YOUR_TOKEN
 ```
 
-### Embroidery Crawl Config
+### Proxy Management
 
-#### دریافت تنظیمات فعلی
-```http
-GET /api/v1/products/crawl-config
-```
+#### List Proxies
 
-#### بروزرسانی فیلترها و ورودی‌های API
-```http
-PUT /api/v1/products/crawl-config
-Content-Type: application/json
-
-{
-  "payload_overrides": {
-    "query": {
-      "bool": {
-        "must": [
-          { "term": { "definitionName": "StockDesign" } },
-          { "term": { "catalog.raw": "Christmas" } }
-        ]
-      }
-    }
-  }
-}
-```
-
-> مقدار `payload_overrides` عیناً روی payload پایه کرالر مرج می‌شود. فیلدهای صفحه‌بندی (`from` و `size`) همیشه توسط سیستم مدیریت می‌شوند و نیازی به ارسال آن‌ها نیست. برای تجربه‌ای بهتر می‌توانید از صفحه **Crawler Config** در رابط کاربری استفاده کنید که یک JSON editor آماده برای این کار دارد.
-
-### Proxies
-
-#### لیست Proxies
 ```http
 GET /api/v1/proxies
+Authorization: Bearer YOUR_TOKEN
 ```
 
-#### اضافه کردن Proxy
+#### Add Proxy
+
 ```http
 POST /api/v1/proxies
+Authorization: Bearer YOUR_TOKEN
 Content-Type: application/json
 
 {
@@ -484,152 +500,145 @@ Content-Type: application/json
 }
 ```
 
-#### حذف Proxy
-```http
-DELETE /api/v1/proxies/:id
+## 💡 Usage Examples
+
+### Example 1: Create and Start a Crawling Task
+
+```bash
+# Create task
+curl -X POST http://localhost:8009/api/v1/tasks \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Embroidery Products Crawl",
+    "url": "https://www.embroiderydesigns.com/es/prdsrch",
+    "type": "api",
+    "config": {
+      "crawler_type": "embroidery_api"
+    }
+  }'
+
+# Start task (replace {task_id} with actual ID)
+curl -X POST http://localhost:8009/api/v1/tasks/{task_id}/start \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-#### تست Proxy
-```http
-POST /api/v1/proxies/test
-Content-Type: application/json
+### Example 2: Quick Embroidery Crawl
 
-{
-  "host": "proxy.example.com",
-  "port": 8080,
-  "type": "http"
-}
+```bash
+curl -X POST http://localhost:8009/api/v1/products/crawl \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-### System
+### Example 3: Connect to WebSocket for Real-time Logs
 
-#### Health Check
-```http
-GET /api/v1/health
+```javascript
+const token = 'YOUR_JWT_TOKEN';
+const ws = new WebSocket(`ws://localhost:8009/ws/logs?token=${token}&task_id=1`);
+
+ws.onmessage = (event) => {
+  const log = JSON.parse(event.data);
+  console.log(`[${log.level}] ${log.message}`);
+};
 ```
 
-#### آمار سیستم
-```http
-GET /api/v1/stats
-```
+## 🔧 Development
 
-## ⚙️ پیکربندی
+### Building
 
-متغیرهای محیطی قابل تنظیم:
-
-### Server
-- `SERVER_HOST`: آدرس سرور (پیش‌فرض: `0.0.0.0`)
-- `SERVER_PORT`: پورت سرور (پیش‌فرض: `8009`)
-- `API_PREFIX`: پیشوند API (پیش‌فرض: `/api/v1`)
-
-### Database
-- `DB_HOST`: آدرس دیتابیس (پیش‌فرض: `localhost`)
-- `DB_PORT`: پورت دیتابیس (پیش‌فرض: `5432`)
-- `DB_USER`: نام کاربری (پیش‌فرض: `crawler`)
-- `DB_PASSWORD`: رمز عبور
-- `DB_NAME`: نام دیتابیس (پیش‌فرض: `crawler_db`)
-- `DB_SSLMODE`: حالت SSL (پیش‌فرض: `disable`)
-
-### Logging
-- `LOG_LEVEL`: سطح لاگ (پیش‌فرض: `info`) - مقادیر: `debug`, `info`, `warn`, `error`
-- `LOG_FORMAT`: فرمت لاگ (پیش‌فرض: `json`) - مقادیر: `json`, `text`
-
-### Crawler
-- `MAX_WORKERS`: تعداد worker ها (پیش‌فرض: `10`)
-- `RATE_LIMIT_PER_SECOND`: نرخ درخواست در ثانیه (پیش‌فرض: `5`)
-- `REQUEST_TIMEOUT`: تایم‌اوت درخواست (پیش‌فرض: `30s`)
-- `RETRY_MAX_ATTEMPTS`: تعداد تلاش‌های مجدد (پیش‌فرض: `3`)
-- `RETRY_BACKOFF_MULTIPLIER`: ضریب backoff (پیش‌فرض: `2`)
-
-### Browser
-- `HEADLESS`: اجرای headless (پیش‌فرض: `true`)
-- `BROWSER_TIMEOUT`: تایم‌اوت مرورگر (پیش‌فرض: `60s`)
-- `USER_DATA_DIR`: مسیر داده‌های مرورگر (پیش‌فرض: `/tmp/browser-data`)
-
-### Proxy
-- `PROXY_ENABLED`: فعال/غیرفعال بودن proxy (پیش‌فرض: `true`)
-- `PROXY_HEALTH_CHECK_INTERVAL`: فاصله بررسی سلامت (پیش‌فرض: `5m`)
-- `PROXY_MAX_FAILURES`: حداکثر تعداد خطا قبل از غیرفعال شدن (پیش‌فرض: `3`)
-
-### Auth
-- `JWT_SECRET`: کلید امضای JWT (پیش‌فرض: مقدار نمونه‌ای که باید تغییر کند)
-- `JWT_EXPIRATION`: مدت اعتبار دسترسی (پیش‌فرض: `24h`)
-- `REFRESH_TOKEN_EXPIRATION`: مدت اعتبار refresh token (پیش‌فرض: `168h`)
-- `ADMIN_TOKEN_LIFETIME`: طول عمر پیش‌فرض توکن‌های API صادر شده برای کاربر ادمین (پیش‌فرض: `8760h` یعنی یک سال)
-
-## 🔧 توسعه
-
-### ساخت پروژه
 ```bash
 go build -o crawler ./cmd/crawler
 ```
 
-### اجرای تست‌ها
+### Running Tests
+
 ```bash
 go test ./...
 ```
 
-### فرمت کردن کد
+### Code Formatting
+
 ```bash
 go fmt ./...
 ```
 
-### اجرای Linter
+### Linting
+
 ```bash
 golangci-lint run
 ```
 
-### ساخت Docker Image
+### Building Docker Image
+
 ```bash
 docker build -f docker/Dockerfile -t crawler:latest .
 ```
 
-## 📊 ساختار دیتابیس
+## 📊 Database Schema
 
-### Tables
+### Main Tables
 
-1. **tasks**: ذخیره‌سازی tasks
-   - id, name, url, type, status, config, created_at, updated_at, started_at, completed_at
+- **tasks**: Crawling tasks
+- **crawl_results**: Crawling results
+- **proxies**: Proxy configurations
+- **products**: Scraped products
+- **users**: User accounts
+- **api_tokens**: API tokens
+- **refresh_tokens**: Refresh tokens
+- **crawler_settings**: Application settings
 
-2. **crawl_results**: نتایج کرال
-   - id, task_id, url, method, status_code, headers, body, response_time, proxy_used, created_at
+## 🤝 Contributing
 
-3. **proxies**: لیست proxy ها
-   - id, host, port, type, username, password, is_active, failure_count, last_checked, created_at, updated_at
+Contributions are welcome! Please follow these steps:
 
-4. **crawl_logs**: لاگ‌های کرال
-   - id, task_id, level, message, metadata, created_at
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-5. **products**: محصولات گلدوزی
-   - id, elastic_id, product_id, item_id, name, brand, catalog, artist, rating, prices, stock info, categories, keywords, variants, raw_data, created_at, updated_at
+### Code Style
 
-## 🐛 عیب‌یابی
-
-برای مشکلات رایج، به فایل `TROUBLESHOOTING.md` مراجعه کنید.
-
-### مشکلات رایج
-
-1. **خطای اتصال به دیتابیس**: بررسی کنید PostgreSQL در حال اجرا است و تنظیمات درست است
-2. **خطای proxy**: بررسی کنید proxy ها معتبر هستند و health check فعال است
-3. **خطای browser**: بررسی کنید Chromium نصب است و مسیر درست تنظیم شده است
+- Follow Go conventions and best practices
+- Use meaningful variable and function names
+- Add comments for exported functions
+- Write tests for new features
+- Ensure all tests pass before submitting
 
 ## 📝 License
 
-MIT
+MIT License - see LICENSE file for details
 
-## 🤝 مشارکت
+## 🐛 Troubleshooting
 
-برای مشارکت در پروژه:
-1. Fork کنید
-2. Branch جدید ایجاد کنید (`git checkout -b feature/AmazingFeature`)
-3. Commit کنید (`git commit -m 'Add some AmazingFeature'`)
-4. Push کنید (`git push origin feature/AmazingFeature`)
-5. Pull Request باز کنید
+### Common Issues
 
-## 📞 پشتیبانی
+1. **Database Connection Error**
+   - Verify PostgreSQL is running
+   - Check database credentials in `.env`
+   - Ensure database exists
 
-برای سوالات و مشکلات، یک Issue در repository باز کنید.
+2. **Proxy Errors**
+   - Verify proxy configurations
+   - Check proxy health status
+   - Ensure proxy credentials are correct
+
+3. **Browser Errors**
+   - Verify Chromium is installed
+   - Check browser path configuration
+   - Ensure sufficient system resources
+
+4. **Authentication Errors**
+   - Verify JWT_SECRET is set
+   - Check token expiration
+   - Ensure token is included in requests
+
+For more troubleshooting help, see `TROUBLESHOOTING.md`.
+
+## 📞 Support
+
+For questions and issues, please open an issue in the repository.
 
 ---
 
-**نکته**: این پروژه برای اهداف آموزشی و تحقیقاتی طراحی شده است. لطفاً قوانین و مقررات وب‌سایت‌های هدف را رعایت کنید.
+**Note**: This project is designed for educational and research purposes. Please respect the terms of service and robots.txt of target websites.

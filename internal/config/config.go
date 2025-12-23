@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -21,6 +22,7 @@ type ServerConfig struct {
 	Host      string
 	Port      int
 	APIPrefix string
+	CORSOrigin string
 }
 
 type DatabaseConfig struct {
@@ -62,6 +64,8 @@ type AuthConfig struct {
 	JWTExpiration     time.Duration
 	RefreshExpiration time.Duration
 	AdminTokenLifetime time.Duration
+	RateLimitRequests int // Number of requests per window
+	RateLimitWindow    time.Duration // Time window for rate limiting
 }
 
 type EmbroideryConfig struct {
@@ -93,6 +97,7 @@ func Load() (*Config, error) {
 			Host:      viper.GetString("SERVER_HOST"),
 			Port:      viper.GetInt("SERVER_PORT"),
 			APIPrefix: viper.GetString("API_PREFIX"),
+			CORSOrigin: viper.GetString("CORS_ORIGIN"),
 		},
 		Database: DatabaseConfig{
 			Host:     viper.GetString("DB_HOST"),
@@ -128,6 +133,8 @@ func Load() (*Config, error) {
 			JWTExpiration:     parseDuration(viper.GetString("JWT_EXPIRATION")),
 			RefreshExpiration: parseDuration(viper.GetString("REFRESH_TOKEN_EXPIRATION")),
 			AdminTokenLifetime: parseDuration(viper.GetString("ADMIN_TOKEN_LIFETIME")),
+			RateLimitRequests: viper.GetInt("AUTH_RATE_LIMIT_REQUESTS"),
+			RateLimitWindow:    parseDuration(viper.GetString("AUTH_RATE_LIMIT_WINDOW")),
 		},
 		Embroidery: EmbroideryConfig{
 			BaseURL:       viper.GetString("EMBROIDERY_BASE_URL"),
@@ -138,18 +145,34 @@ func Load() (*Config, error) {
 		},
 	}
 	
+	// Validate required configuration values
+	if err := validateConfig(config); err != nil {
+		return nil, err
+	}
+	
 	return config, nil
+}
+
+func validateConfig(cfg *Config) error {
+	if cfg.Database.Password == "" {
+		return fmt.Errorf("DB_PASSWORD environment variable is required")
+	}
+	if cfg.Auth.JWTSecret == "" {
+		return fmt.Errorf("JWT_SECRET environment variable is required")
+	}
+	return nil
 }
 
 func setDefaults() {
 	viper.SetDefault("SERVER_HOST", "0.0.0.0")
 	viper.SetDefault("SERVER_PORT", 8009)
 	viper.SetDefault("API_PREFIX", "/api/v1")
+	viper.SetDefault("CORS_ORIGIN", "*") // Default to * for development, should be set to specific origin in production
 	
 	viper.SetDefault("DB_HOST", "localhost")
 	viper.SetDefault("DB_PORT", 5432)
 	viper.SetDefault("DB_USER", "crawler")
-	viper.SetDefault("DB_PASSWORD", "password")
+	// DB_PASSWORD must be set via environment variable - no default for security
 	viper.SetDefault("DB_NAME", "crawler_db")
 	viper.SetDefault("DB_SSLMODE", "disable")
 	
@@ -170,13 +193,15 @@ func setDefaults() {
 	viper.SetDefault("PROXY_HEALTH_CHECK_INTERVAL", "5m")
 	viper.SetDefault("PROXY_MAX_FAILURES", 3)
 	
-	viper.SetDefault("JWT_SECRET", "change-this-secret-key-in-production")
+	// JWT_SECRET must be set via environment variable - no default for security
 	viper.SetDefault("JWT_EXPIRATION", "24h")
 	viper.SetDefault("REFRESH_TOKEN_EXPIRATION", "168h") // 7 days
 	viper.SetDefault("ADMIN_TOKEN_LIFETIME", "8760h")    // 1 year
+	viper.SetDefault("AUTH_RATE_LIMIT_REQUESTS", 5)      // 5 requests per window
+	viper.SetDefault("AUTH_RATE_LIMIT_WINDOW", "15m")   // 15 minute window
 	
 	viper.SetDefault("EMBROIDERY_BASE_URL", "https://www.embroiderydesigns.com/es/prdsrch")
-	viper.SetDefault("EMBROIDERY_AUTH_TOKEN", "Basic ZWxhc3RpY1JlYWRPbmx5OnpnOzlTcSFXPnc1O1FoLDJ0eVU=")
+	// EMBROIDERY_AUTH_TOKEN must be set via environment variable - no default for security
 	viper.SetDefault("EMBROIDERY_COOKIES", "")
 	viper.SetDefault("EMBROIDERY_PAGE_SIZE", 120)
 	viper.SetDefault("EMBROIDERY_CHECK_INTERVAL", "6h")

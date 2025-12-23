@@ -5,9 +5,9 @@ services:
     image: docker.arvancloud.ir/postgres:15-alpine
     container_name: crawler-postgres
     environment:
-      POSTGRES_USER: crawler
-      POSTGRES_PASSWORD: crawler_password
-      POSTGRES_DB: crawler_db
+      POSTGRES_USER: ${POSTGRES_USER:-crawler}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-crawler_db}
     ports:
       - "5432"
     volumes:
@@ -33,12 +33,12 @@ services:
       API_PREFIX: /api/v1
       
       # Database
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: crawler
-      DB_PASSWORD: crawler_password
-      DB_NAME: crawler_db
-      DB_SSLMODE: disable
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-crawler}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-crawler_db}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
       
       # Logging
       LOG_LEVEL: info
